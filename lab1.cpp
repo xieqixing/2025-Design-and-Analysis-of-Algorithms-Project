@@ -16,7 +16,7 @@ struct duplication{
 
 struct score
 {
-    int score;
+    int score, max_position_in_reference;
     std::pair<int, int> parent;
 }score_matrix[MAX][MAX];
 
@@ -72,57 +72,66 @@ int main(){
     }
             
     // using dynamic programming to get a score matrix
-    int max_score_idx = 1, temp_max_score, temp_max_score_idx;
+    int max_score_idx[MAX] = {0}, temp_max_score[MAX] = {0}, temp_max_score_idx[MAX] = {0};
     score_matrix[1][1].score = 1;
 
     for(size_t i = 2; i <= query.size(); i++){
-        temp_max_score = 0;
+
+        // initialize temp score idx
+        for(size_t j = reference.size(); j >= 1; j--) temp_max_score[j] = 0, temp_max_score_idx[j] = 0;
+        //max_score_idx[reference.size()+1] = temp_max_score_idx;
 
         for(size_t j = reference.size(); j >= 1; j--){
             // dot doesn't exist
             if(dot_matrix[i][j].strand == 0) continue;
-
+            
+            score_matrix[i][j].max_position_in_reference = j;
             // match successfully when strand equals to 1
             if(dot_matrix[i][j].strand == 1 && dot_matrix[i-1][j-1].strand == 1)
             {
                 score_matrix[i][j].score = score_matrix[i-1][j-1].score + 1;
                 score_matrix[i][j].parent = std::make_pair(i-1, j-1);
-
-                if(score_matrix[i][j].score > temp_max_score) temp_max_score = score_matrix[i][j].score, temp_max_score_idx = j;
+                score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][j-1].max_position_in_reference);
             }
             else if(dot_matrix[i][j].strand == -1 && dot_matrix[i-1][j+1].strand == -1) // match successfully when strand equals to -1
             {
                 score_matrix[i][j].score = score_matrix[i-1][j+1].score + 1;
                 score_matrix[i][j].parent = std::make_pair(i-1, j+1);
-
-                if(score_matrix[i][j].score > temp_max_score) temp_max_score = score_matrix[i][j].score, temp_max_score_idx = j;
+                score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][j+1].max_position_in_reference);
             }
 
             // duplication occurred
-            if(score_matrix[i-1][max_score_idx].score > score_matrix[i][j].score)
+            if(score_matrix[i-1][max_score_idx[j]].score > score_matrix[i][j].score)
             {
-                score_matrix[i][j].score = score_matrix[i-1][max_score_idx].score;
-                score_matrix[i][j].parent = std::make_pair(i-1, max_score_idx);
-
-                if(score_matrix[i][j].score > temp_max_score) temp_max_score = score_matrix[i][j].score, temp_max_score_idx = j;
+                score_matrix[i][j].score = score_matrix[i-1][max_score_idx[j]].score;
+                score_matrix[i][j].parent = std::make_pair(i-1, max_score_idx[j]);
+                score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][max_score_idx[j]].max_position_in_reference);
             }
+
+            // update temp max score
+            if(score_matrix[i][j].score > temp_max_score[score_matrix[i][j].max_position_in_reference]) temp_max_score[score_matrix[i][j].max_position_in_reference] = score_matrix[i][j].score, temp_max_score_idx[score_matrix[i][j].max_position_in_reference] = j;
 
         }
 
-        max_score_idx = temp_max_score_idx;
+        // initialize max score idx
+        for(size_t j = reference.size(); j >= 1; j--){
+            if(temp_max_score[j] > score_matrix[i][max_score_idx[j+1]].score) max_score_idx[j] = temp_max_score_idx[j];
+            else max_score_idx[j] = max_score_idx[j+1];
+        }
     }
 
     // output the answer
-    std::cout << "The max score is: " << temp_max_score << std::endl;
+    std::cout << "The max score is: " << score_matrix[(int)query.size()][max_score_idx[1]].score << std::endl;
     std::cout << "The length of query is: " << query.size() << std::endl;
+    std::cout << std::endl;
     
-    
+    int max_idx = max_score_idx[1];
     int query_to_reference[MAX], judge_duplication[MAX] = {0};
     for (size_t i = query.size(); i >= 1; i--)
     {
-        query_to_reference[i] = temp_max_score_idx;
-        std::cout << temp_max_score_idx << ' ';
-        temp_max_score_idx = score_matrix[i][temp_max_score_idx].parent.second;
+        query_to_reference[i] = max_idx;
+        //std::cout << max_idx << ' ';
+        max_idx = score_matrix[i][max_idx].parent.second;
         //std::cout<<dot_matrix[i][temp_max_score_idx].strand;
     }
     
