@@ -3,7 +3,6 @@
 #include<utility>
 #include<map>
 
-
 #define MAX 2000
 
 struct duplication{
@@ -20,7 +19,6 @@ struct score
     std::pair<int, int> parent;
 }score_matrix[MAX][MAX];
 
-
 struct dot
 {
     int strand;
@@ -30,10 +28,10 @@ struct dot
 std::map<duplication, int> output;
 std::string query, reference, reversed_reference;
 
-int main(){
-    std::cin >> reference >> query;
+int max_score_idx[MAX], temp_max_score[MAX], temp_max_score_idx[MAX];
+int query_to_reference[MAX], judge_duplication[MAX];
 
-    // get reversed reference
+void Get_reversed_reference(){
     reversed_reference = reference;
     for (size_t i = 0; i < reversed_reference.size(); i++)
     {
@@ -55,9 +53,10 @@ int main(){
             break;
         }
     }
-    
+}
 
-    // setup dot matrix 
+void Setup_dot_matrix(){
+
     for(size_t i = 0; i < query.size(); i++){
         for(size_t j = 0; j < reference.size(); j++){
             if(query[i] == reference[j]){
@@ -70,9 +69,9 @@ int main(){
             dot_matrix[i+1][j+1].position_in_reference = j+1;
         }
     }
-            
-    // using dynamic programming to get a score matrix
-    int max_score_idx[MAX] = {0}, temp_max_score[MAX] = {0}, temp_max_score_idx[MAX] = {0};
+}
+
+void Setup_score_matrix(){
     score_matrix[1][1].score = 1;
 
     for(size_t i = 2; i <= query.size(); i++){
@@ -119,14 +118,14 @@ int main(){
             else max_score_idx[j] = max_score_idx[j+1];
         }
     }
+}
 
-    // output the answer
+void Output_the_answer(){
     std::cout << "The max score is: " << score_matrix[(int)query.size()][max_score_idx[1]].score << std::endl;
     std::cout << "The length of query is: " << query.size() << std::endl;
     std::cout << std::endl;
-    
+
     int max_idx = max_score_idx[1];
-    int query_to_reference[MAX], judge_duplication[MAX] = {0};
     for (size_t i = query.size(); i >= 1; i--)
     {
         query_to_reference[i] = max_idx;
@@ -202,7 +201,22 @@ int main(){
         std::cout << "Strand: " << i->first.strand <<std::endl;
         std::cout << std::endl;
     }
-    
+}
 
+int main(){
+    std::cin >> reference >> query;
+
+    // get reversed reference
+    Get_reversed_reference();
+
+    // setup dot matrix 
+    Setup_dot_matrix();
+
+    // using dynamic programming to get a score matrix
+    Setup_score_matrix();
+
+    // output the answer
+    Output_the_answer();
+    
     return 0;
 }
