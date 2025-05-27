@@ -5,47 +5,30 @@
 #include<vector>
 #include<algorithm>
 
-#define MAX 3000
+#define MAX 30000
 // seq2: 6 6 3 30
 #define INCREASE_NUM 6
 #define DECREASE_NUM 6
 #define MUTATION_NUM 3
 #define MIN_SUBSEQ 30
 
-struct duplication{
-    int start_idx, size, strand;
-
-    bool operator<(const duplication& other) const{
-        return this->size < other.size;
-    }
-};
-
-struct score
-{
-    int score, tmp_score, max_position_in_reference, start_position, length;
+typedef struct score{
+    int score, tmp_score, start_position, length;
     int increase_num, decrease_num1, decrease_num2;
     std::pair<int, int> parent;
-}score_matrix[MAX][MAX];
+} score_t;
 
-struct dot
-{
+typedef struct dot{
     int strand;
-    int position_in_query, position_in_reference;
-} dot_matrix[MAX][MAX];
+} dot_t;
 
-struct sequence
-{
+struct sequence{
     int ref_st, ref_en, query_st, query_en;
 };
 
-std::map<duplication, int> output;
-std::string query, reference, reversed_reference;
-std::vector<sequence> seq;
-
 int max_score_idx;
-int query_to_reference[MAX], judge_duplication[MAX];
 
-void Get_reversed_reference(){
+void Get_reversed_reference(std::string& reference, std::string& reversed_reference){
     reversed_reference = reference;
     for (size_t i = 0; i < reversed_reference.size(); i++)
     {
@@ -69,7 +52,7 @@ void Get_reversed_reference(){
     }
 }
 
-void Setup_dot_matrix(){
+void Setup_dot_matrix(dot_t** dot_matrix, std::string& reference, std::string& query, std::string& reversed_reference){
 
     for(size_t i = 0; i < query.size(); i++){
         for(size_t j = 0; j < reference.size(); j++){
@@ -78,153 +61,29 @@ void Setup_dot_matrix(){
             }else if(query[i] == reversed_reference[j]){
                 dot_matrix[i+1][j+1].strand = -1;
             }
-
-            dot_matrix[i+1][j+1].position_in_query = i+1;
-            dot_matrix[i+1][j+1].position_in_reference = j+1;
         }
     }
 }
 
-// void Setup_score_matrix(){
-//     score_matrix[1][1].score = 1;
-//     for(size_t i = 2; i <= query.size(); i++){
+void Setup_score_matrix_2(score_t** score_matrix, dot_t** dot_matrix, std::string& query, std::string& reference){
+    // score_matrix[1][1].tmp_score = 1;
+    // score_matrix[1][1].start_position = 1;
+    // score_matrix[1][1].length = 1;
+    // max_score_idx = 1;
 
-//         // initialize temp score idx
-//         for(size_t j = reference.size(); j >= 1; j--) temp_max_score[j] = 0, temp_max_score_idx[j] = 0;
-//         //max_score_idx[reference.size()+1] = temp_max_score_idx;
-
-//         for(size_t j = reference.size(); j >= 1; j--){
-//             // dot doesn't exist
-//             if(dot_matrix[i][j].strand == 0) continue;
-            
-//             score_matrix[i][j].max_position_in_reference = j;
-//             // match successfully when strand equals to 1
-//             if(dot_matrix[i][j].strand == 1 && dot_matrix[i-1][j-1].strand == 1)
-//             {
-//                 score_matrix[i][j].score = score_matrix[i-1][j-1].score + 1;
-//                 score_matrix[i][j].parent = std::make_pair(i-1, j-1);
-//                 score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][j-1].max_position_in_reference);
-//             }
-//             else if(dot_matrix[i][j].strand == -1 && dot_matrix[i-1][j+1].strand == -1) // match successfully when strand equals to -1
-//             {
-//                 score_matrix[i][j].score = score_matrix[i-1][j+1].score + 1;
-//                 score_matrix[i][j].parent = std::make_pair(i-1, j+1);
-//                 score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][j+1].max_position_in_reference);
-//             }
-
-//             // duplication occurred
-//             if(score_matrix[i-1][max_score_idx[j]].score > score_matrix[i][j].score)
-//             {
-//                 score_matrix[i][j].score = score_matrix[i-1][max_score_idx[j]].score;
-//                 score_matrix[i][j].parent = std::make_pair(i-1, max_score_idx[j]);
-//                 score_matrix[i][j].max_position_in_reference = std::max(score_matrix[i][j].max_position_in_reference, score_matrix[i-1][max_score_idx[j]].max_position_in_reference);
-//             }
-
-//             // update temp max score
-//             if(score_matrix[i][j].score > temp_max_score[score_matrix[i][j].max_position_in_reference]) temp_max_score[score_matrix[i][j].max_position_in_reference] = score_matrix[i][j].score, temp_max_score_idx[score_matrix[i][j].max_position_in_reference] = j;
-
-//         }
-
-//         // initialize max score idx
-//         for(size_t j = reference.size(); j >= 1; j--){
-//             if(temp_max_score[j] > score_matrix[i][max_score_idx[j+1]].score) max_score_idx[j] = temp_max_score_idx[j];
-//             else max_score_idx[j] = max_score_idx[j+1];
-//         }
-//     }
-// }
-
-// void Output_the_answer(){
-//     std::cout << "The max score is: " << score_matrix[(int)query.size()][max_score_idx[1]].score << std::endl;
-//     std::cout << "The length of query is: " << query.size() << std::endl;
-//     std::cout << std::endl;
-
-//     int max_idx = max_score_idx[1];
-//     for (size_t i = query.size(); i >= 1; i--)
-//     {
-//         query_to_reference[i] = max_idx;
-//         //std::cout << max_idx << ' ';
-//         max_idx = score_matrix[i][max_idx].parent.second;
-//         //std::cout<<dot_matrix[i][temp_max_score_idx].strand;
-//     }
-    
-//     int size = 0, strand = 0, start_position = 0, end_position = 0;
-//     for (size_t i = 1; i <= query.size(); i++)
-//     {
-//         if(judge_duplication[query_to_reference[i]] == 0){
-//             judge_duplication[query_to_reference[i]]++;
-
-//             if(size == 0){
-//                 continue;
-//             }
-//             else
-//             {
-//                 // join the map and initialize
-//                 duplication dup;
-
-//                 if(strand == 1) dup = {end_position, size, strand};
-//                 else dup = {start_position, size, strand};
-
-//                 if(output.find(dup) == output.end()) output[dup] = 1;
-//                 else output[dup]++;
-
-//                 start_position = end_position = size = strand = 0;
-//             }
-//         }else{
-//             if(start_position == 0){
-//                 start_position = end_position = query_to_reference[i];
-//                 size++;
-//                 strand = dot_matrix[i][query_to_reference[i]].strand;
-//             }else{
-//                 if(end_position + strand == query_to_reference[i]){
-//                     size++;
-//                     end_position = query_to_reference[i];
-//                 }else{
-//                     //join the map and initialize
-//                     duplication dup;
-
-//                     if(strand == 1) dup = {end_position, size, strand};
-//                     else dup = {start_position, size, strand};
-    
-//                     if(output.find(dup) == output.end()) output[dup] = 1;
-//                     else output[dup]++;
-
-//                     start_position = end_position = query_to_reference[i];
-//                     size = 1;
-//                     strand = dot_matrix[i][query_to_reference[i]].strand;
-//                 }
-//             }
-//         }
-//     }
-
-//     if(start_position != 0){
-//         duplication dup;
-
-//         if(strand == 1) dup = {end_position, size, strand};
-//         else dup = {start_position, size, strand};
-
-//         if(output.find(dup) == output.end()) output[dup] = 1;
-//         else output[dup]++;
-//     }
-    
-//     for (auto i = output.begin(); i != output.end(); i++)
-//     {
-//         std::cout << "Position in reference: " << i->first.start_idx <<std::endl;
-//         std::cout << "Size: " << i->first.size <<std::endl;
-//         std::cout << "Duplication times: " << i->second <<std::endl;
-//         std::cout << "Strand: " << i->first.strand <<std::endl;
-//         std::cout << std::endl;
-//     }
-// }
-
-void Setup_score_matrix_2(){
-    score_matrix[1][1].tmp_score = 1;
-    score_matrix[1][1].start_position = 1;
-    score_matrix[1][1].length = 1;
-    max_score_idx = 1;
+    // 初始化
+    for(size_t j = 1; j <= reference.size(); j++){
+        if(dot_matrix[1][j].strand != 0){
+            score_matrix[1][j].tmp_score = 1;
+            score_matrix[1][j].score = 0;
+            score_matrix[1][j].start_position = 1;
+            score_matrix[1][j].length = 1;
+        }
+    }
 
 
     for(size_t i = 1; i <= query.size(); i++){
-        for(size_t j = 1; j <= reference.size(); j++){
+        for(size_t j = 2; j <= reference.size(); j++){
 
             // 正向匹配
             if(dot_matrix[i][j].strand == 1){
@@ -271,6 +130,8 @@ void Setup_score_matrix_2(){
                     score_matrix[i][j].length = 1;
                     score_matrix[i][j].parent = std::make_pair(i-1, max_score_idx);
                     score_matrix[i][j].start_position = 1;
+                    //score_matrix[i][j].decrease_num1 = 0;
+                    //score_matrix[i][j].increase_num = 0;
                 }
             }
 
@@ -319,6 +180,9 @@ void Setup_score_matrix_2(){
                     score_matrix[i][j].length = 1;
                     score_matrix[i][j].parent = std::make_pair(i-1, max_score_idx);
                     score_matrix[i][j].start_position = 1;
+                    //score_matrix[i][j].decrease_num2 = 0;
+                    //score_matrix[i][j].increase_num = 0;
+                    
                 }
             }
 
@@ -370,7 +234,8 @@ void Setup_score_matrix_2(){
     }
 }
 
-void Output_the_answer2(){
+void Output_the_answer2(score_t** score_matrix, dot_t** dot_matrix, std::string& query, std::string& reference, std::string& reversed_reference){
+    std::vector<sequence> seq;
     int query_st = 0, query_en = 0, ref_st = 0, ref_en = 0;
     std::cout << "The max score is: " << score_matrix[(int)query.size()][max_score_idx].score << std::endl;
 
@@ -396,40 +261,174 @@ void Output_the_answer2(){
         max_score_idx = tmp2;
     }
 
+    // little check
+    std::sort(seq.begin(), seq.end(), [](const sequence& a, const sequence& b) {
+        return a.query_st < b.query_st;
+    });
+
+    std::vector<sequence> seq_ans;
+    for(size_t i = 1; i < seq.size() - 1; i++){
+        if(seq[i].query_en == seq[i].query_st && abs(seq[i-1].ref_en - seq[i+1].ref_st) <= 1){
+            int query_st = seq[i-1].query_st, query_en = seq[i+1].query_en, ref_st = seq[i-1].ref_st, ref_en = seq[i+1].ref_en;
+            seq_ans.push_back({ref_st, ref_en, query_st, query_en});
+            //std::cout << '(' << ref_st << ',' << ref_en << ',' << query_st << ',' << query_en << ')' << std::endl;
+            i += 2;
+        }else{
+            seq_ans.push_back(seq[i-1]);
+        }
+    }
+    
+    seq_ans.push_back(seq[seq.size()-2]);
+    seq_ans.push_back(seq[seq.size()-1]);
+
+    // output the answer
     std::cout << '[';
-    for(auto& i : seq){
+    for(auto& i : seq_ans){
         std::cout << '(' << i.query_st << ',' << i.query_en << ',' << i.ref_st << ',' << i.ref_en << ')' << ',';
     }
     std::cout << ']';
 }
 
-int main(){
-    std::cin >> reference >> query;
+score_t** get_score_matrix(int idx1, int idx2){
+    score_t** score_matrix = new score_t*[idx1];
+    for(int i = 0; i < idx1; i++){
+        score_matrix[i] = new score_t[idx2];
+        for(int j = 0; j < idx2; j++){
+            score_matrix[i][j].score = 0;
+            score_matrix[i][j].tmp_score = 0;
+            score_matrix[i][j].start_position = 0;
+            score_matrix[i][j].length = 0;
+            score_matrix[i][j].increase_num = 0;
+            score_matrix[i][j].decrease_num1 = 0;
+            score_matrix[i][j].decrease_num2 = 0;
+        }
+    }
+    return score_matrix;
+}
 
-    std::cout << "The length of query is: " << query.size() << std::endl;
-    std::cout << "The length of reference is: " << reference.size() << std::endl;
+dot_t** get_dot_matrix(int idx1, int idx2){
+    dot_t** dot_matrix = new dot_t*[idx1];
+    for(int i = 0; i < idx1; i++){
+        dot_matrix[i] = new dot_t[idx2];
+        for(int j = 0; j < idx2; j++){
+            dot_matrix[i][j].strand = 0;
+        }
+    }
+    return dot_matrix;
+}
+
+void clear_matrix(score_t** score_matrix, dot_t** dot_matrix, int idx1){
+    for(int i = 0; i < idx1; i++){
+        delete[] score_matrix[i];
+    }
+    delete[] score_matrix;
+
+    for(int i = 0; i < idx1; i++){
+        delete[] dot_matrix[i];
+    }
+    delete[] dot_matrix;
+}
+
+void solve(std::string& reference, std::string& query){
+    score_t** score_matrix = get_score_matrix(query.size() + 1, reference.size() + 1);
+    dot_t** dot_matrix = get_dot_matrix(query.size() + 1, reference.size() + 1);
+
     // get reversed reference
-    Get_reversed_reference();
+    std::string reversed_reference;
+    Get_reversed_reference(reference, reversed_reference);
 
-    std::cout << "The length of reversed reference is: " << reversed_reference.size() << std::endl;
-    std::cout << "Start setting up the dot matrix..." << std::endl;
     // setup dot matrix 
-    Setup_dot_matrix();
+    std::cout << "Start setting up the dot matrix..." << std::endl;
+    Setup_dot_matrix(dot_matrix, reference, query, reversed_reference);
     std::cout << "Finish setting up the dot matrix..." << std::endl;
 
-    // // using dynamic programming to get a score matrix
-    // Setup_score_matrix();
-
-    // // output the answer
-    // Output_the_answer();
-
-    std::cout << "Start calculating the score matrix..." << std::endl;
     // using dynamic programming to get a score matrix
-    Setup_score_matrix_2();
-
+    std::cout << "Start calculating the score matrix..." << std::endl;
+    Setup_score_matrix_2(score_matrix, dot_matrix, query, reference);
     std::cout << "Finish calculating the score matrix..." << std::endl;
+
+    // output the answer
     std::cout << "Start outputting the answer..." << std::endl;
-    Output_the_answer2();
+    Output_the_answer2(score_matrix, dot_matrix, query, reference, reversed_reference);
+    clear_matrix(score_matrix, dot_matrix, query.size() + 1);
+    std::cout << std::endl;
+    std::cout << "Finish outputting the answer..." << std::endl;
+}
+
+void Get_Seq(score_t** score_matrix, dot_t** dot_matrix, std::string& query, std::vector<sequence>& seq, int bias){
+    int query_st = 0, query_en = 0, ref_st = 0, ref_en = 0;
+
+    for(size_t i = query.size(); i >= 1;){
+        //std::cout << i << ' ' << max_score_idx << std::endl;
+        if(query_en == 0){
+            query_en = i;
+            ref_en = max_score_idx;
+        }
+
+        if(score_matrix[i][max_score_idx].start_position == 1){
+            query_st = i;
+            ref_st = max_score_idx;
+            if(dot_matrix[i][max_score_idx].strand == -1) std::swap(ref_st, ref_en);
+            seq.push_back({ref_st, ref_en, query_st + bias, query_en + bias});
+            query_en = 0;
+            ref_en = 0;
+        }
+
+        int tmp1 = score_matrix[i][max_score_idx].parent.first, tmp2 = score_matrix[i][max_score_idx].parent.second;
+
+        i = tmp1;
+        max_score_idx = tmp2;
+    }
+}
+
+void Output_vector(std::vector<sequence>& seq){
+    std::cout << '[';
+    for(auto& i : seq){
+        std::cout << '(' << i.query_st << ',' << i.query_en << ',' << i.ref_st << ',' << i.ref_en << ')' << ',';
+    }
+    std::cout << ']' << std::endl;
+}
+
+void solve_by_part(std::string& reference, std::string& query){
+    std::vector<sequence> seq;
+    int query_length = query.size(), reference_length = reference.size();
+    int sub_query_length = 30000;
+
+    for(int i = 1; sub_query_length * (i - 1) < query_length; i++){
+        int query_st = sub_query_length * (i - 1);
+        int query_en = std::min(sub_query_length * i, query_length);
+        std::string sub_query = query.substr(query_st, query_en - query_st);
+
+        // get the answer
+        std::cout << "Processing the " << query_st << " to " << query_en << " part of the query..." << std::endl;
+        score_t** score_matrix = get_score_matrix(sub_query.size() + 1, reference_length + 1);
+        dot_t** dot_matrix = get_dot_matrix(sub_query.size() + 1, reference_length + 1);
+
+        std::string reversed_reference;
+        Get_reversed_reference(reference, reversed_reference);
+
+        Setup_dot_matrix(dot_matrix, reference, sub_query, reversed_reference);
+        Setup_score_matrix_2(score_matrix, dot_matrix, sub_query, reference);
+        Get_Seq(score_matrix, dot_matrix, sub_query, seq, sub_query_length * (i - 1));
+        clear_matrix(score_matrix, dot_matrix, sub_query.size() + 1);
+
+    }
+
+    Output_vector(seq);
+
+}
+
+int main(){
+    std::string reference, query;
+    std::cout << "Please input the reference and query sequence: " << std::endl;
+    std::cin >> reference >> query;
+
+    int query_length = query.size(), reference_length = reference.size();
+    std::cout << "The length of query is: " << query_length << std::endl;
+    std::cout << "The length of reference is: " << reference_length << std::endl;
+
+
+    solve(reference, query);
     
     return 0;
 }
