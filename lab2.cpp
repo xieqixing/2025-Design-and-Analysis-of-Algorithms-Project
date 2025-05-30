@@ -249,8 +249,13 @@ void Output_the_answer2(score_t** score_matrix, dot_t** dot_matrix, std::string&
         if(score_matrix[i][max_score_idx].start_position == 1){
             query_st = i;
             ref_st = max_score_idx;
-            if(dot_matrix[i][max_score_idx].strand == -1) std::swap(ref_st, ref_en);
-            seq.push_back({ref_st, ref_en, query_st, query_en});
+            if(dot_matrix[i][max_score_idx].strand == -1){
+                std::swap(ref_st, ref_en);
+                seq.push_back({ref_st - 1, ref_en, query_st, query_en + 1});
+            }else{
+                seq.push_back({ref_st, ref_en + 1, query_st, query_en + 1});
+            }
+            
             query_en = 0;
             ref_en = 0;
         }
@@ -268,7 +273,7 @@ void Output_the_answer2(score_t** score_matrix, dot_t** dot_matrix, std::string&
 
     std::vector<sequence> seq_ans;
     for(size_t i = 1; i < seq.size() - 1; i++){
-        if(seq[i].query_en == seq[i].query_st && abs(seq[i-1].ref_en - seq[i+1].ref_st) <= 1){
+        if(seq[i].query_en == seq[i].query_st + 1 && abs(seq[i-1].ref_en - seq[i+1].ref_st) <= 2){
             int query_st = seq[i-1].query_st, query_en = seq[i+1].query_en, ref_st = seq[i-1].ref_st, ref_en = seq[i+1].ref_en;
             seq_ans.push_back({ref_st, ref_en, query_st, query_en});
             //std::cout << '(' << ref_st << ',' << ref_en << ',' << query_st << ',' << query_en << ')' << std::endl;
